@@ -1,11 +1,17 @@
-import sqlite3
+import psycopg2
+import psycopg2.extras
+import psycopg2.errors
 import os
 import re
 from datetime import datetime, timezone as dt_timezone
 
-# Override with VYREEL_DB_PATH to point at a persistent disk in production
-# (otherwise the SQLite file lives next to the code and is wiped on redeploy).
-DB_PATH = os.environ.get("VYREEL_DB_PATH") or os.path.join(os.path.dirname(__file__), "vyreel.db")
+# Postgres connection string (Supabase). Set DATABASE_URL in the environment, e.g.
+#   postgresql://postgres.<ref>:<password>@<host>.pooler.supabase.com:6543/postgres
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+# Postgres expression that reproduces utc_iso()'s format (naive UTC, second
+# precision) so column DEFAULTs match values written by the collectors.
+_NOW_ISO = "to_char((now() at time zone 'utc'), 'YYYY-MM-DD\"T\"HH24:MI:SS')"
 
 # Instagram allows letters, digits, dots and underscores, max 30 chars.
 # Also blocks path traversal — the handle ends up in PDF filenames.
@@ -44,112 +50,120 @@ def utc_iso(dt: datetime) -> str:
 
 
 def get_conn():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA foreign_keys=ON")
+    if not DATABASE_URL:
+        raise RuntimeError(
+            "DATABASE_URL is not set. Point it at your Supabase Postgres "
+            "connection string (Project Settings -> Database -> Connection string)."
+        )
+    # sslmode=require: Supabase mandates TLS. If the URL already specifies an
+    # sslmode this keyword takes precedence, which is the behaviour we want.
+    conn = psycopg2.connect(
+        DATABASE_URL,
+        sslmode="require",
+        cursor_factory=psycopg2.extras.RealDictCursor,
+    )
     return conn
 
 
 def init_db():
     conn = get_conn()
-    c = conn.cursor()
+    try:
+        cur = conn.cursor()
+        cur.execute(f"""
+            CREATE TABLE IF NOT EXISTS creators (
+                id SERIAL PRIMARY KEY,
+                handle TEXT UNIQUE NOT NULL,
+                email TEXT NOT NULL,
+                phone TEXT,
+                timezone TEXT NOT NULL DEFAULT 'Asia/Kolkata',
+                niche TEXT NOT NULL DEFAULT 'ai-tech',
+                created_at TEXT NOT NULL DEFAULT {_NOW_ISO},
+                backfilled_at TEXT
+            );
 
-    c.executescript("""
-        CREATE TABLE IF NOT EXISTS creators (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            handle TEXT UNIQUE NOT NULL,
-            email TEXT NOT NULL,
-            phone TEXT,
-            timezone TEXT NOT NULL DEFAULT 'Asia/Kolkata',
-            niche TEXT NOT NULL DEFAULT 'ai-tech',
-            created_at TEXT NOT NULL DEFAULT (datetime('now')),
-            backfilled_at TEXT
-        );
+            CREATE TABLE IF NOT EXISTS competitors (
+                id SERIAL PRIMARY KEY,
+                creator_id INTEGER NOT NULL REFERENCES creators(id),
+                handle TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'confirmed',  -- confirmed | suggested
+                UNIQUE(creator_id, handle)
+            );
 
-        CREATE TABLE IF NOT EXISTS competitors (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            creator_id INTEGER NOT NULL REFERENCES creators(id),
-            handle TEXT NOT NULL,
-            status TEXT NOT NULL DEFAULT 'confirmed',  -- confirmed | suggested
-            UNIQUE(creator_id, handle)
-        );
+            CREATE TABLE IF NOT EXISTS posts (
+                id SERIAL PRIMARY KEY,
+                handle TEXT NOT NULL,
+                shortcode TEXT UNIQUE NOT NULL,
+                post_date TEXT NOT NULL,
+                likes INTEGER DEFAULT 0,
+                video_views INTEGER DEFAULT 0,
+                post_type TEXT,  -- GraphVideo | GraphImage | GraphSidecar
+                caption TEXT,
+                is_competitor INTEGER NOT NULL DEFAULT 0,
+                collected_at TEXT NOT NULL DEFAULT {_NOW_ISO}
+            );
 
-        CREATE TABLE IF NOT EXISTS posts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            handle TEXT NOT NULL,
-            shortcode TEXT UNIQUE NOT NULL,
-            post_date TEXT NOT NULL,
-            likes INTEGER DEFAULT 0,
-            video_views INTEGER DEFAULT 0,
-            post_type TEXT,  -- GraphVideo | GraphImage | GraphSidecar
-            caption TEXT,
-            is_competitor INTEGER NOT NULL DEFAULT 0,
-            collected_at TEXT NOT NULL DEFAULT (datetime('now'))
-        );
+            CREATE TABLE IF NOT EXISTS reddit_signals (
+                id SERIAL PRIMARY KEY,
+                subreddit TEXT NOT NULL,
+                title TEXT NOT NULL,
+                score INTEGER DEFAULT 0,
+                num_comments INTEGER DEFAULT 0,
+                created_utc TEXT NOT NULL,
+                post_id TEXT UNIQUE NOT NULL,
+                collected_at TEXT NOT NULL DEFAULT {_NOW_ISO}
+            );
 
-        CREATE TABLE IF NOT EXISTS reddit_signals (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            subreddit TEXT NOT NULL,
-            title TEXT NOT NULL,
-            score INTEGER DEFAULT 0,
-            num_comments INTEGER DEFAULT 0,
-            created_utc TEXT NOT NULL,
-            post_id TEXT UNIQUE NOT NULL,
-            collected_at TEXT NOT NULL DEFAULT (datetime('now'))
-        );
+            CREATE TABLE IF NOT EXISTS youtube_signals (
+                id SERIAL PRIMARY KEY,
+                video_id TEXT UNIQUE NOT NULL,
+                title TEXT NOT NULL,
+                channel TEXT,
+                view_count INTEGER DEFAULT 0,
+                published_at TEXT NOT NULL,
+                collected_at TEXT NOT NULL DEFAULT {_NOW_ISO}
+            );
 
-        CREATE TABLE IF NOT EXISTS youtube_signals (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            video_id TEXT UNIQUE NOT NULL,
-            title TEXT NOT NULL,
-            channel TEXT,
-            view_count INTEGER DEFAULT 0,
-            published_at TEXT NOT NULL,
-            collected_at TEXT NOT NULL DEFAULT (datetime('now'))
-        );
+            CREATE TABLE IF NOT EXISTS trend_signals (
+                id SERIAL PRIMARY KEY,
+                keyword TEXT NOT NULL,
+                interest_score INTEGER DEFAULT 0,
+                date TEXT NOT NULL,
+                collected_at TEXT NOT NULL DEFAULT {_NOW_ISO},
+                UNIQUE(keyword, date)
+            );
 
-        CREATE TABLE IF NOT EXISTS trend_signals (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            keyword TEXT NOT NULL,
-            interest_score INTEGER DEFAULT 0,
-            date TEXT NOT NULL,
-            collected_at TEXT NOT NULL DEFAULT (datetime('now')),
-            UNIQUE(keyword, date)
-        );
+            CREATE TABLE IF NOT EXISTS news_signals (
+                id SERIAL PRIMARY KEY,
+                headline TEXT NOT NULL,
+                source TEXT,
+                published_at TEXT NOT NULL,
+                link TEXT UNIQUE NOT NULL,
+                collected_at TEXT NOT NULL DEFAULT {_NOW_ISO}
+            );
 
-        CREATE TABLE IF NOT EXISTS news_signals (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            headline TEXT NOT NULL,
-            source TEXT,
-            published_at TEXT NOT NULL,
-            link TEXT UNIQUE NOT NULL,
-            collected_at TEXT NOT NULL DEFAULT (datetime('now'))
-        );
+            CREATE TABLE IF NOT EXISTS briefs (
+                id SERIAL PRIMARY KEY,
+                creator_id INTEGER NOT NULL REFERENCES creators(id),
+                generated_at TEXT NOT NULL DEFAULT {_NOW_ISO},
+                confidence_score DOUBLE PRECISION NOT NULL,
+                top_topic TEXT,
+                pdf_path TEXT,
+                sent_at TEXT
+            );
 
-        CREATE TABLE IF NOT EXISTS briefs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            creator_id INTEGER NOT NULL REFERENCES creators(id),
-            generated_at TEXT NOT NULL DEFAULT (datetime('now')),
-            confidence_score REAL NOT NULL,
-            top_topic TEXT,
-            pdf_path TEXT,
-            sent_at TEXT
-        );
-
-        CREATE TABLE IF NOT EXISTS waitlist (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE NOT NULL,
-            handle TEXT,            -- Instagram handle, stored without '@'
-            name TEXT,
-            niche TEXT,             -- creator niche, e.g. 'ai-tech'
-            about TEXT,             -- optional free-text "about yourself"
-            created_at TEXT NOT NULL DEFAULT (datetime('now'))
-        );
-    """)
-
-    conn.commit()
-    conn.close()
+            CREATE TABLE IF NOT EXISTS waitlist (
+                id SERIAL PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                handle TEXT,            -- Instagram handle, stored without '@'
+                name TEXT,
+                niche TEXT,             -- creator niche, e.g. 'ai-tech'
+                about TEXT,             -- optional free-text "about yourself"
+                created_at TEXT NOT NULL DEFAULT {_NOW_ISO}
+            );
+        """)
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def add_creator(handle, email, phone, timezone, competitors=None):
@@ -164,16 +178,17 @@ def add_creator(handle, email, phone, timezone, competitors=None):
     try:
         c = conn.cursor()
         c.execute(
-            "INSERT INTO creators (handle, email, phone, timezone) VALUES (?, ?, ?, ?)",
+            "INSERT INTO creators (handle, email, phone, timezone) VALUES (%s, %s, %s, %s) RETURNING id",
             (handle, email or "", phone_norm, timezone),
         )
-        creator_id = c.lastrowid
+        creator_id = c.fetchone()["id"]
         if competitors:
             for comp in competitors:
                 comp = comp.strip().lstrip("@")
                 if comp and valid_handle(comp):
                     c.execute(
-                        "INSERT OR IGNORE INTO competitors (creator_id, handle, status) VALUES (?, ?, 'confirmed')",
+                        "INSERT INTO competitors (creator_id, handle, status) VALUES (%s, %s, 'confirmed') "
+                        "ON CONFLICT (creator_id, handle) DO NOTHING",
                         (creator_id, comp),
                     )
         conn.commit()
@@ -185,9 +200,9 @@ def add_creator(handle, email, phone, timezone, competitors=None):
 def get_creator(handle):
     conn = get_conn()
     try:
-        row = conn.execute(
-            "SELECT * FROM creators WHERE handle = ?", (handle.lstrip("@"),)
-        ).fetchone()
+        c = conn.cursor()
+        c.execute("SELECT * FROM creators WHERE handle = %s", (handle.lstrip("@"),))
+        row = c.fetchone()
         return dict(row) if row else None
     finally:
         conn.close()
@@ -196,7 +211,9 @@ def get_creator(handle):
 def get_all_creators():
     conn = get_conn()
     try:
-        return [dict(r) for r in conn.execute("SELECT * FROM creators").fetchall()]
+        c = conn.cursor()
+        c.execute("SELECT * FROM creators")
+        return [dict(r) for r in c.fetchall()]
     finally:
         conn.close()
 
@@ -204,11 +221,12 @@ def get_all_creators():
 def get_competitors(creator_id):
     conn = get_conn()
     try:
-        rows = conn.execute(
-            "SELECT handle FROM competitors WHERE creator_id = ? AND status = 'confirmed'",
+        c = conn.cursor()
+        c.execute(
+            "SELECT handle FROM competitors WHERE creator_id = %s AND status = 'confirmed'",
             (creator_id,),
-        ).fetchall()
-        return [r["handle"] for r in rows]
+        )
+        return [r["handle"] for r in c.fetchall()]
     finally:
         conn.close()
 
@@ -238,17 +256,17 @@ def add_to_waitlist(email, handle=None, name=None, niche=None, about=None):
         c = conn.cursor()
         try:
             c.execute(
-                "INSERT INTO waitlist (email, handle, name, niche, about) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO waitlist (email, handle, name, niche, about) VALUES (%s, %s, %s, %s, %s) RETURNING id",
                 (email, handle, name, niche, about),
             )
-        except sqlite3.IntegrityError:
+            new_id = c.fetchone()["id"]
+        except psycopg2.IntegrityError:
+            conn.rollback()
             raise AlreadyOnWaitlistError(email)
-        new_id = c.lastrowid
-        conn.commit()
         # Position = number of rows at or before this one (stable by id).
-        position = conn.execute(
-            "SELECT COUNT(*) FROM waitlist WHERE id <= ?", (new_id,)
-        ).fetchone()[0]
+        c.execute("SELECT COUNT(*) AS n FROM waitlist WHERE id <= %s", (new_id,))
+        position = c.fetchone()["n"]
+        conn.commit()
         return new_id, position
     finally:
         conn.close()
@@ -257,7 +275,9 @@ def add_to_waitlist(email, handle=None, name=None, niche=None, about=None):
 def get_waitlist_count():
     conn = get_conn()
     try:
-        return conn.execute("SELECT COUNT(*) FROM waitlist").fetchone()[0]
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) AS n FROM waitlist")
+        return c.fetchone()["n"]
     finally:
         conn.close()
 
@@ -265,16 +285,18 @@ def get_waitlist_count():
 def get_waitlist(limit=None):
     conn = get_conn()
     try:
+        c = conn.cursor()
         sql = "SELECT * FROM waitlist ORDER BY id"
         params = ()
         if limit is not None:
-            sql += " LIMIT ?"
+            sql += " LIMIT %s"
             params = (limit,)
-        return [dict(r) for r in conn.execute(sql, params).fetchall()]
+        c.execute(sql, params)
+        return [dict(r) for r in c.fetchall()]
     finally:
         conn.close()
 
 
 if __name__ == "__main__":
     init_db()
-    print(f"Database initialised at {DB_PATH}")
+    print(f"Database initialised at {DATABASE_URL}")

@@ -1,6 +1,7 @@
 # Minimal deps for the public waitlist web service (no collectors / PDF / ML).
-# The waitlist route only imports Flask, Flask-Limiter and the SQLite db layer.
+# The waitlist route only imports Flask, Flask-Limiter and the Postgres db layer.
 flask>=3.0.0
 flask-limiter>=3.5.0
 python-dotenv>=1.0.0
 gunicorn>=21.2.0
+psycopg2-binary>=2.9.9
