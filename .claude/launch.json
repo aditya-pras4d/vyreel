@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "onboarding",
+      "runtimeExecutable": "/Users/adityaprasad/Desktop/ADI/vyreel/.venv/bin/python3",
+      "runtimeArgs": ["-m", "flask", "--app", "onboarding/app.py", "run", "--port", "5050"],
+      "port": 5050
+    }
+  ]
+}

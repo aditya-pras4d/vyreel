@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vyreel — Add Competitors</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #111214;
+      color: #FAF7F1;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .constellation {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .constellation svg { width: 100%; height: 100%; }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      background: #111214;
+      border: 1px solid rgba(183, 132, 255, 0.15);
+      border-radius: 4px;
+      padding: 48px;
+      width: 100%;
+      max-width: 460px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 36px;
+    }
+    .logo-star { color: #FFE65A; font-size: 20px; line-height: 1; }
+    .logo-text {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px;
+      color: #FAF7F1;
+      letter-spacing: -0.3px;
+    }
+
+    .step-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: #B784FF;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      color: #FAF7F1;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #A9B1A6;
+      margin-bottom: 32px;
+      line-height: 1.55;
+    }
+
+    .handle-badge {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: #00C6FF;
+      background: rgba(0,198,255,0.08);
+      border: 1px solid rgba(0,198,255,0.2);
+      padding: 3px 10px;
+      border-radius: 2px;
+      margin-bottom: 28px;
+    }
+
+    label {
+      display: block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #A9B1A6;
+      margin-bottom: 7px;
+    }
+
+    .field-group { margin-bottom: 10px; }
+
+    input {
+      width: 100%;
+      padding: 11px 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(169, 177, 166, 0.2);
+      border-radius: 3px;
+      color: #FAF7F1;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus {
+      border-color: #B784FF;
+      background: rgba(183, 132, 255, 0.04);
+    }
+    input::placeholder { color: rgba(250,247,241,0.22); }
+
+    .note {
+      font-size: 12px;
+      color: rgba(169,177,166,0.6);
+      margin-top: 18px;
+      margin-bottom: 28px;
+      line-height: 1.5;
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    .note-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #B784FF;
+      flex-shrink: 0;
+      margin-top: 5px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-primary {
+      flex: 2;
+      padding: 13px;
+      background: #00C6FF;
+      color: #111214;
+      border: none;
+      border-radius: 3px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+
+    .btn-skip {
+      flex: 1;
+      padding: 13px;
+      background: transparent;
+      color: #A9B1A6;
+      border: 1px solid rgba(169,177,166,0.25);
+      border-radius: 3px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-skip:hover { border-color: rgba(169,177,166,0.5); color: #FAF7F1; }
+
+    .footer-note {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: rgba(169,177,166,0.4);
+      text-align: center;
+      margin-top: 20px;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="constellation">
+    <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <line x1="200" y1="100" x2="480" y2="280" stroke="#B784FF" stroke-width="1" stroke-dasharray="4 4" stroke-opacity="0.2"/>
+      <line x1="480" y1="280" x2="720" y2="200" stroke="#00C6FF" stroke-width="1" stroke-dasharray="4 4" stroke-opacity="0.18"/>
+      <line x1="1050" y1="400" x2="1300" y2="250" stroke="#B784FF" stroke-width="1" stroke-dasharray="4 4" stroke-opacity="0.2"/>
+      <line x1="100" y1="650" x2="320" y2="780" stroke="#00C6FF" stroke-width="1" stroke-dasharray="4 4" stroke-opacity="0.15"/>
+
+      <polygon points="200,88 212,95 212,109 200,116 188,109 188,95" fill="#B784FF" opacity="0.3"/>
+      <polygon points="480,268 492,275 492,289 480,296 468,289 468,275" fill="#00C6FF" opacity="0.28"/>
+      <polygon points="720,188 730,194 730,206 720,212 710,206 710,194" fill="#B784FF" opacity="0.22"/>
+      <polygon points="1300,238 1310,244 1310,256 1300,262 1290,256 1290,244" fill="#00C6FF" opacity="0.2"/>
+      <polygon points="100,638 112,645 112,659 100,666 88,659 88,645" fill="#FFE65A" opacity="0.2"/>
+      <polygon points="320,768 330,774 330,786 320,792 310,786 310,774" fill="#B784FF" opacity="0.18"/>
+
+      <circle cx="600" cy="500" r="2.5" fill="#B784FF" opacity="0.35"/>
+      <circle cx="950" cy="150" r="2" fill="#00C6FF" opacity="0.3"/>
+      <circle cx="1150" cy="600" r="3" fill="#FFE65A" opacity="0.25"/>
+      <circle cx="380" cy="400" r="2" fill="#00C6FF" opacity="0.28"/>
+
+      <polygon points="1350,580 1400,610 1420,660 1400,710 1350,740 1300,710 1280,660 1300,610" fill="#A9B1A6" opacity="0.05"/>
+    </svg>
+  </div>
+
+  <div class="card">
+    <div class="logo">
+      <span class="logo-star">✦</span>
+      <span class="logo-text">Vyreel</span>
+      <span style="color:#B784FF;font-size:14px;margin-left:2px;">✦</span>
+    </div>
+
+    <div class="step-label">Step 02 / 02 — Competitor Mapping</div>
+    <h1>Who are you watching?</h1>
+    <div class="subtitle">Add accounts you compete with or want to track. We monitor their content to find gaps you can own.</div>
+
+    <div class="handle-badge">@{{ handle }}</div>
+
+    {% if error %}
+    <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; padding: 12px 14px; border-radius: 3px; font-size: 13px; margin-bottom: 22px;">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+      <label>Competitor handles — up to 5</label>
+      {% for i in range(1, 6) %}
+      <div class="field-group">
+        <input type="text" name="competitor_{{ i }}" placeholder="@competitor{{ i }}" />
+      </div>
+      {% endfor %}
+
+      <div class="note">
+        <span class="note-dot"></span>
+        <span>You can skip this. After setup, we'll auto-suggest competitors based on accounts in your niche.</span>
+      </div>
+
+      <div class="actions">
+        <button type="submit" name="action" value="skip" class="btn-skip" formnovalidate>Skip</button>
+        <button type="submit" name="action" value="save" class="btn-primary">Save & finish →</button>
+      </div>
+    </form>
+
+    <div class="footer-note">Vyreel · Content Intelligence · Pilot 2026</div>
+  </div>
+
+</body>
+</html>

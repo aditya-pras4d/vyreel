@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vyreel — WhatsApp Brief Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at 50% 30%, #1c1f24 0%, #0a0b0d 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    /* Phone frame */
+    .phone {
+      width: 390px;
+      height: 800px;
+      background: #0B141A;
+      border-radius: 44px;
+      border: 10px solid #1a1d21;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Notch */
+    .notch {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 150px;
+      height: 26px;
+      background: #1a1d21;
+      border-bottom-left-radius: 16px;
+      border-bottom-right-radius: 16px;
+      z-index: 20;
+    }
+
+    /* WhatsApp header */
+    .wa-header {
+      background: #1F2C33;
+      padding: 38px 14px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .wa-back { color: #aebac1; font-size: 22px; line-height: 1; }
+    .wa-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #111214;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid rgba(0,198,255,0.25);
+    }
+    .wa-avatar .star { color: #FFE65A; font-size: 17px; }
+    .wa-meta { flex: 1; min-width: 0; }
+    .wa-name {
+      color: #e9edef;
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .wa-name .verify { color: #00C6FF; font-size: 12px; }
+    .wa-status { color: #8696a0; font-size: 12px; margin-top: 1px; }
+    .wa-icons { color: #aebac1; font-size: 17px; display: flex; gap: 18px; }
+
+    /* Chat area */
+    .wa-chat {
+      flex: 1;
+      background-color: #0B141A;
+      background-image:
+        radial-gradient(rgba(255,255,255,0.015) 1px, transparent 1px);
+      background-size: 22px 22px;
+      padding: 16px 12px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .day-divider {
+      align-self: center;
+      background: #182229;
+      color: #8696a0;
+      font-size: 11px;
+      padding: 5px 12px;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      letter-spacing: 0.3px;
+    }
+
+    /* Incoming bubble */
+    .bubble-in {
+      align-self: flex-start;
+      max-width: 86%;
+      background: #1F2C33;
+      border-radius: 10px;
+      border-top-left-radius: 2px;
+      padding: 8px 10px 6px;
+      color: #e9edef;
+      font-size: 13.5px;
+      line-height: 1.5;
+      position: relative;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.2);
+    }
+    .bubble-in .sender {
+      color: #FFE65A;
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 3px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .bubble-in b { color: #fff; font-weight: 700; }
+    .bubble-in .cyan { color: #00C6FF; font-weight: 600; }
+    .bubble-in i { color: #c5ccd1; font-style: italic; }
+    .bubble-in .line { margin-top: 7px; }
+    .bubble-in .quote {
+      margin-top: 7px;
+      padding: 7px 9px;
+      background: rgba(0,198,255,0.06);
+      border-left: 2px solid #00C6FF;
+      border-radius: 3px;
+      font-style: italic;
+      color: #d8dee2;
+      font-size: 13px;
+    }
+    .timestamp {
+      display: block;
+      text-align: right;
+      color: #8696a0;
+      font-size: 10.5px;
+      margin-top: 4px;
+    }
+    .timestamp .tick { color: #53bdeb; margin-left: 2px; }
+
+    /* PDF attachment card */
+    .bubble-in.doc { padding: 8px; max-width: 78%; }
+    .doc-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #15212b;
+      border-radius: 8px;
+      padding: 12px 11px;
+    }
+    .doc-icon {
+      width: 38px;
+      height: 44px;
+      background: #2a3942;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .doc-icon::after {
+      content: "PDF";
+      font-size: 8px;
+      font-weight: 700;
+      color: #FFE65A;
+      letter-spacing: 0.5px;
+    }
+    .doc-info { flex: 1; min-width: 0; }
+    .doc-name {
+      color: #e9edef;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .doc-sub { color: #8696a0; font-size: 11px; margin-top: 2px; }
+    .doc-download {
+      color: #00C6FF;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    /* Outgoing bubble */
+    .bubble-out {
+      align-self: flex-end;
+      max-width: 80%;
+      background: #005C4B;
+      border-radius: 10px;
+      border-top-right-radius: 2px;
+      padding: 7px 10px 5px;
+      color: #e9edef;
+      font-size: 13.5px;
+      line-height: 1.45;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.2);
+    }
+
+    /* Input bar */
+    .wa-input {
+      background: #1F2C33;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .wa-input .pill {
+      flex: 1;
+      background: #2a3942;
+      border-radius: 22px;
+      padding: 10px 14px;
+      color: #8696a0;
+      font-size: 13.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .wa-input .send {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #00A884;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    /* Caption under phone */
+    .caption {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: #5a6168;
+      letter-spacing: 0.4px;
+    }
+    .caption b { color: #8a9299; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <div class="phone">
+    <div class="notch"></div>
+
+    <!-- Header -->
+    <div class="wa-header">
+      <span class="wa-back">‹</span>
+      <div class="wa-avatar"><span class="star">✦</span></div>
+      <div class="wa-meta">
+        <div class="wa-name">Vyreel <span class="verify">✦</span></div>
+        <div class="wa-status">your content strategist · online</div>
+      </div>
+      <div class="wa-icons"><span>⏷</span><span>⋮</span></div>
+    </div>
+
+    <!-- Chat -->
+    <div class="wa-chat">
+      <div class="day-divider">TODAY</div>
+
+      <!-- Brief notification -->
+      <div class="bubble-in">
+        <div class="sender">🔭 Today's signal — @stics.ai</div>
+        <b>AI Agents</b> is breaking across <span class="cyan">4 of 5</span> sources — Reddit, YouTube, Trends &amp; News — and <b>none</b> of your competitors have touched it yet. The window's open.
+        <div class="line">📊 <b>What to post:</b> a Reel on how AI agents replace entire <i>workflows</i>, not just tasks.</div>
+        <div class="line">⏰ <b>When:</b> Tuesday 7PM — your top slot (4.2x avg)</div>
+        <div class="line">🎬 <b>Format:</b> Reels are winning at 3.8x baseline this week</div>
+        <div class="quote">"You don't need a team for this anymore — one AI agent just replaced my entire research workflow."</div>
+        <div class="line" style="color:#8696a0;font-size:12.5px;">Full breakdown attached 👇</div>
+        <span class="timestamp">9:14 AM</span>
+      </div>
+
+      <!-- PDF card -->
+      <div class="bubble-in doc">
+        <div class="doc-card">
+          <div class="doc-icon"></div>
+          <div class="doc-info">
+            <div class="doc-name">Vyreel_Brief_stics.ai.pdf</div>
+            <div class="doc-sub">1 page · 28 KB</div>
+          </div>
+          <div class="doc-download">⤓</div>
+        </div>
+        <span class="timestamp">9:14 AM</span>
+      </div>
+
+      <!-- Creator reply -->
+      <div class="bubble-out">
+        🔥 love this, filming tonight
+        <span class="timestamp">9:21 AM <span class="tick">✓✓</span></span>
+      </div>
+
+      <!-- Vyreel reply -->
+      <div class="bubble-in">
+        Go. I'll check how it lands in a couple days and factor it into your next one.
+        <span class="timestamp">9:21 AM</span>
+      </div>
+
+      <!-- Creator follow-up -->
+      <div class="bubble-out">
+        can you give me a punchier hook?
+        <span class="timestamp">9:22 AM <span class="tick">✓✓</span></span>
+      </div>
+
+      <!-- Vyreel reply with alt hook -->
+      <div class="bubble-in">
+        Try: <i>"I fired my research process. This AI agent does it in 4 minutes."</i> — opens with tension, lands the time-save fast.
+        <span class="timestamp">9:22 AM</span>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="wa-input">
+      <div class="pill"><span>😊</span> Message</div>
+      <div class="send">➤</div>
+    </div>
+  </div>
+
+  <div class="caption">Vyreel · brief + live strategist, delivered in <b>WhatsApp</b></div>
+
+</body>
+</html>

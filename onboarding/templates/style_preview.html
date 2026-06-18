@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vyreel · Waitlist (paper-cutout preview)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --paper:     #E7D8BC;   /* page: kraft */
+      --sheet:     #F5ECD8;   /* card: cream paper */
+      --field:     #FBF4E3;   /* inputs */
+      --terra:     #BD5B3D;
+      --terra-dk:  #9E462C;
+      --mustard:   #D99A2B;
+      --olive:     #87864A;
+      --ink:       #3A2E22;
+      --ink-soft:  #6E5D49;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Work Sans', sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Paper grain over everything */
+    .grain {
+      position: fixed; inset: 0; z-index: 50; pointer-events: none;
+      opacity: 0.42; mix-blend-mode: multiply;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* Preview-only ribbon */
+    .ribbon {
+      position: fixed; top: 14px; left: 14px; z-index: 60;
+      font-family: 'Work Sans'; font-size: 10px; font-weight: 600;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--ink); background: var(--mustard);
+      padding: 6px 11px; border-radius: 4px;
+      filter: url(#torn) drop-shadow(2px 3px 2px rgba(58,40,22,0.25));
+    }
+
+    .scene {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 48px 24px; position: relative;
+    }
+
+    .stage { position: relative; width: 100%; max-width: 480px; }
+
+    /* Hand-cut decorative shapes sitting behind the card */
+    .cut {
+      position: absolute; z-index: 0;
+      filter: url(#torn) drop-shadow(3px 6px 4px rgba(58,40,22,0.20));
+    }
+    .blob-terra   { width: 130px; height: 130px; background: var(--terra);
+                    border-radius: 46% 54% 60% 40% / 52% 44% 56% 48%;
+                    top: -52px; left: -44px; transform: rotate(-8deg); }
+    .blob-mustard { width: 168px; height: 142px; background: var(--mustard);
+                    border-radius: 58% 42% 47% 53% / 43% 57% 43% 57%;
+                    bottom: -58px; right: -52px; transform: rotate(9deg); }
+    .blob-olive   { width: 78px; height: 100px; background: var(--olive);
+                    border-radius: 60% 40% 50% 50% / 70% 60% 40% 30%;
+                    bottom: 90px; left: -40px; transform: rotate(16deg); }
+
+    /* Creator photos cut out like taped, torn-paper scraps */
+    .photo {
+      position: relative; background: #FCF8EE; padding: 7px;
+      filter: url(#torn) drop-shadow(4px 7px 6px rgba(58,40,22,0.28));
+    }
+    .photo img {
+      display: block; width: 100%; height: 100%; object-fit: cover;
+      filter: sepia(0.34) saturate(1.05) contrast(0.95) brightness(1.03);
+    }
+    /* warm wash so photos melt into the kraft palette instead of popping */
+    .photo::after {
+      content: ""; position: absolute; inset: 7px; pointer-events: none;
+      background: linear-gradient(150deg, rgba(189,91,61,0.14), rgba(135,134,74,0.16));
+      mix-blend-mode: multiply;
+    }
+    .tape {
+      position: absolute; top: -9px; left: 50%; width: 58px; height: 21px;
+      background: rgba(224,199,138,0.5); transform: translateX(-50%) rotate(-3deg);
+      box-shadow: 0 1px 2px rgba(58,40,22,0.12); z-index: 3;
+    }
+
+    /* Scraps scattered behind the card, peeking around the edges */
+    .photo-scrap { position: absolute; z-index: 0; opacity: 0.96; }
+    .photo-scrap img { aspect-ratio: 3 / 4; }
+    .sc-1 { width: 174px; top: -84px;  right: -76px; transform: rotate(7deg); }
+    .sc-2 { width: 174px; bottom: -88px; left: -72px; transform: rotate(-8deg); }
+    .sc-3 { width: 136px; top: 30%;     left: -88px; transform: rotate(-5deg); }
+    .sc-4 { width: 132px; top: 50%;     right: -90px; transform: rotate(10deg); }
+    .sc-5 { width: 126px; top: -66px;   left: 58px;  transform: rotate(-3deg); }
+
+    /* One large photo ghosting through behind the translucent card */
+    .photo-ghost { position: absolute; z-index: 0; inset: -8px -6px; opacity: 0.3; }
+    .photo-ghost img {
+      width: 100%; height: 100%; object-fit: cover;
+      filter: sepia(0.5) contrast(0.9) brightness(1.06);
+    }
+
+    /* Instagram-flavoured paper stickers around the edges */
+    .sticker { position: absolute; z-index: 4; pointer-events: none;
+               filter: url(#torn) drop-shadow(2px 4px 3px rgba(58,40,22,0.26)); }
+    .sticker svg { display: block; }
+    .heart  { top: -26px; left: 42px;  transform: rotate(-12deg); }
+    .reel   { top: -34px; right: 20px; transform: rotate(8deg); }
+    .bubble { bottom: 11%; left: -30px; transform: rotate(-6deg); }
+
+    .pill { position: absolute; z-index: 4; pointer-events: none;
+            top: 42%; right: -36px; transform: rotate(5deg);
+            display: flex; align-items: center; gap: 6px;
+            background: #F5ECD8; color: var(--ink); padding: 6px 11px;
+            border-radius: 20px; font-size: 12px; font-weight: 600;
+            box-shadow: 2px 4px 4px rgba(58,40,22,0.22);
+            border: 1px solid rgba(58,40,22,0.10); }
+    .pill svg { display: block; }
+
+    .tag { position: absolute; z-index: 4; pointer-events: none;
+           bottom: -30px; right: 46px; transform: rotate(-5deg);
+           background: var(--olive); color: #F6EFDC; padding: 5px 11px;
+           border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+           box-shadow: 2px 4px 3px rgba(58,40,22,0.22); }
+
+    .spark { position: absolute; z-index: 4; pointer-events: none; line-height: 1;
+             text-shadow: 1px 2px 1px rgba(58,40,22,0.18); }
+    .s-a { top: 16%; right: -12px; font-size: 23px; color: var(--terra); transform: rotate(8deg); }
+    .s-b { bottom: 19%; left: -10px; font-size: 18px; color: var(--mustard); transform: rotate(-10deg); }
+
+    /* The card = a torn cream sheet (filtered) behind crisp content */
+    .card { position: relative; z-index: 1; transform: rotate(-0.5deg); }
+    .sheet {
+      position: absolute; inset: -16px -14px; z-index: 1;
+      background: rgba(245, 236, 216, 0.9); border-radius: 6px;
+      filter: url(#torn) drop-shadow(5px 10px 8px rgba(58,40,22,0.22));
+    }
+    .content { position: relative; z-index: 2; padding: 46px 40px; }
+
+    .logo { display: flex; align-items: center; gap: 9px; margin-bottom: 26px; }
+    .logo .star { color: var(--terra); font-size: 22px; line-height: 1; }
+    .logo .name { font-family: 'Fraunces', serif; font-weight: 700; font-size: 27px;
+                  color: var(--ink); letter-spacing: -0.5px; }
+
+    .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 2px;
+               text-transform: uppercase; color: var(--terra); margin-bottom: 10px; }
+    h1 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 35px;
+         line-height: 1.06; color: var(--ink); margin-bottom: 11px; }
+    .sub { font-size: 14px; line-height: 1.55; color: var(--ink-soft);
+           margin-bottom: 30px; max-width: 40ch; }
+
+    label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 1.3px;
+            text-transform: uppercase; color: var(--ink-soft); margin-bottom: 7px; }
+    .optional { text-transform: none; letter-spacing: 0; font-weight: 400;
+                color: rgba(58,40,22,0.42); }
+
+    input, select, textarea {
+      width: 100%; padding: 12px 14px; margin-bottom: 20px;
+      font-family: 'Work Sans', sans-serif; font-size: 15px; color: var(--ink);
+      background: var(--field); border: 1.5px solid rgba(58,40,22,0.28);
+      border-radius: 5px; outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--terra); box-shadow: 0 0 0 3px rgba(189,91,61,0.13);
+    }
+    input::placeholder, textarea::placeholder { color: rgba(58,40,22,0.34); }
+    textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+    select option { background: var(--field); color: var(--ink); }
+
+    /* Torn-edge button: filtered colour layer behind crisp label */
+    .btn {
+      position: relative; display: block; width: 100%; margin-top: 4px;
+      padding: 16px; border: none; background: transparent; cursor: pointer;
+    }
+    .btn::before {
+      content: ""; position: absolute; inset: 0; z-index: 0; background: var(--terra);
+      filter: url(#torn) drop-shadow(3px 5px 3px rgba(58,40,22,0.30));
+      transition: background 0.15s;
+    }
+    .btn span {
+      position: relative; z-index: 1; font-family: 'Fraunces', serif;
+      font-weight: 600; font-size: 16px; color: #FBF1DD; letter-spacing: 0.3px;
+    }
+    .btn:hover::before { background: var(--terra-dk); }
+
+    .foot { margin-top: 24px; font-size: 11px; letter-spacing: 0.5px;
+            color: rgba(58,40,22,0.45); text-align: center; }
+
+    @media (max-width: 600px) {
+      .content { padding: 36px 26px; }
+      h1 { font-size: 30px; }
+      .blob-mustard { width: 116px; height: 100px; bottom: -36px; right: -26px; }
+      .blob-terra { width: 94px; height: 94px; top: -34px; left: -24px; }
+      .blob-olive { left: -14px; bottom: 64px; }
+      .sc-1 { width: 120px; top: -54px; right: -32px; }
+      .sc-2 { width: 120px; bottom: -58px; left: -30px; }
+      .sc-3 { width: 92px; top: 26%; left: -48px; }
+      .sc-4 { width: 92px; top: 58%; right: -50px; }
+      .sc-5 { display: none; }
+      .bubble, .tag, .s-b { display: none; }
+      .heart { left: 22px; top: -22px; }
+      .reel { right: 8px; top: -26px; }
+      .reel svg { width: 40px; height: 40px; }
+      .pill { right: -14px; top: 40%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SVG filter that roughens straight edges into torn-paper edges -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <filter id="torn" x="-15%" y="-15%" width="130%" height="130%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="3" seed="9" result="n" />
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="14" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+    </defs>
+  </svg>
+
+  <div class="grain"></div>
+  <div class="ribbon">Style preview · not wired up</div>
+
+  <div class="scene">
+    <div class="stage">
+      <span class="cut blob-terra"></span>
+      <span class="cut blob-mustard"></span>
+      <span class="cut blob-olive"></span>
+
+      <figure class="photo photo-scrap sc-1"><span class="tape"></span><img src="/static/creator-2.jpg" alt="" loading="lazy" /></figure>
+      <figure class="photo photo-scrap sc-2"><span class="tape"></span><img src="/static/creator-1.jpg" alt="" loading="lazy" /></figure>
+      <figure class="photo photo-scrap sc-3"><img src="/static/creator-3.jpg" alt="" loading="lazy" /></figure>
+      <figure class="photo photo-scrap sc-4"><img src="/static/creator-2.jpg" alt="" loading="lazy" /></figure>
+      <figure class="photo photo-scrap sc-5"><span class="tape"></span><img src="/static/creator-1.jpg" alt="" loading="lazy" /></figure>
+
+      <div class="card">
+        <div class="photo-ghost"><img src="/static/creator-3.jpg" alt="" /></div>
+        <div class="sheet"></div>
+        <div class="content">
+          <div class="logo">
+            <span class="star">✦</span>
+            <span class="name">Vyreel</span>
+          </div>
+
+          <div class="eyebrow">Early Access</div>
+          <h1>Join the waitlist</h1>
+          <div class="sub">Daily content-intelligence briefs for creators. We're onboarding in batches, so leave your email and we'll reach out when a spot opens.</div>
+
+          <form onsubmit="return false;">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="you@example.com" />
+
+            <label for="handle">Instagram handle</label>
+            <input type="text" id="handle" name="handle" placeholder="@yourhandle" />
+
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" placeholder="Your name" />
+
+            <label for="niche">What's your niche?</label>
+            <select id="niche" name="niche">
+              <option value="" selected disabled>Select your niche…</option>
+              {% for n in niches %}
+              <option value="{{ n }}">{{ n }}</option>
+              {% endfor %}
+            </select>
+
+            <label for="about">Tell us something about yourself <span class="optional">(optional)</span></label>
+            <textarea id="about" name="about" rows="3" placeholder="What you create, your goals, anything you'd like us to know"></textarea>
+
+            <button class="btn" type="submit"><span>Join the waitlist</span></button>
+          </form>
+
+          <div class="foot">Vyreel · Content Intelligence · 2026</div>
+        </div>
+      </div>
+
+      <!-- Instagram-flavoured paper stickers -->
+      <span class="sticker heart">
+        <svg viewBox="0 0 32 29" width="36" height="33" aria-hidden="true"><path d="M16 29C16 29 2 21 2 11.5 2 6.8 5.8 3 10.5 3 13.2 3 15.4 4.6 16 6.3 16.6 4.6 18.8 3 21.5 3 26.2 3 30 6.8 30 11.5 30 21 16 29 16 29Z" fill="#BD5B3D"/></svg>
+      </span>
+      <span class="sticker reel">
+        <svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="#F5ECD8"/><circle cx="24" cy="24" r="22" fill="none" stroke="#BD5B3D" stroke-width="2.5" stroke-dasharray="5 4"/><path d="M20 16l13 8-13 8z" fill="#BD5B3D"/></svg>
+      </span>
+      <span class="sticker bubble">
+        <svg viewBox="0 0 50 44" width="46" height="40" aria-hidden="true"><path d="M4 4h42v28H24l-9 8v-8H4z" fill="#D99A2B"/><circle cx="16" cy="18" r="2.6" fill="#F5ECD8"/><circle cx="25" cy="18" r="2.6" fill="#F5ECD8"/><circle cx="34" cy="18" r="2.6" fill="#F5ECD8"/></svg>
+      </span>
+      <span class="pill">
+        <svg viewBox="0 0 32 29" width="13" height="12" aria-hidden="true"><path d="M16 29C16 29 2 21 2 11.5 2 6.8 5.8 3 10.5 3 13.2 3 15.4 4.6 16 6.3 16.6 4.6 18.8 3 21.5 3 26.2 3 30 6.8 30 11.5 30 21 16 29 16 29Z" fill="#BD5B3D"/></svg>
+        1.2k
+      </span>
+      <span class="tag">#creators</span>
+      <span class="spark s-a">✦</span>
+      <span class="spark s-b">✦</span>
+    </div>
+  </div>
+
+</body>
+</html>
